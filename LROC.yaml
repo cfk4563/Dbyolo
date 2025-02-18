@@ -1,0 +1,9 @@
+path: D:\Desktop\twobackboneyolo\datasets\LROC
+train: train.txt
+val: val.txt
+test: test.txt
+
+# Classes
+names:
+  0: crater
+
