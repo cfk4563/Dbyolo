@@ -63,6 +63,7 @@ from ultralytics.nn.modules import (
     TorchVision,
     WorldDetect,
     v10Detect,
+    Cat,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -97,7 +98,7 @@ class BaseModel(torch.nn.Module):
         If x is a dict, calculates and returns the loss for training. Otherwise, returns predictions for inference.
 
         Args:
-            x (torch.Tensor | dict): Input tensor for inference, or dict with image tensor and labels for training.
+            x (torch.Tensor | dict | list): Input tensor for inference, or dict with image tensor and labels for training.
             *args (Any): Variable length argument list.
             **kwargs (Any): Arbitrary keyword arguments.
 
@@ -106,9 +107,11 @@ class BaseModel(torch.nn.Module):
         """
         if isinstance(x, dict):  # for cases of training and validating while training.
             return self.loss(x, *args, **kwargs)
-        return self.predict(x, *args, **kwargs)
+        if isinstance(x, list):
+            return self.predict(x[0], x[1], *args, **kwargs)
+        return self.predict(x, x, *args, **kwargs)
 
-    def predict(self, x, profile=False, visualize=False, augment=False, embed=None):
+    def predict(self, x1, x2, profile=False, visualize=False, augment=False, embed=None):
         """
         Perform a forward pass through the network.
 
@@ -123,10 +126,10 @@ class BaseModel(torch.nn.Module):
             (torch.Tensor): The last output of the model.
         """
         if augment:
-            return self._predict_augment(x)
-        return self._predict_once(x, profile, visualize, embed)
+            return self._predict_augment(x1)
+        return self._predict_once(x1, x2, profile, visualize, embed)
 
-    def _predict_once(self, x, profile=False, visualize=False, embed=None):
+    def _predict_once(self, x1, x2, profile=False, visualize=False, embed=None):
         """
         Perform a forward pass through the network.
 
@@ -139,20 +142,31 @@ class BaseModel(torch.nn.Module):
         Returns:
             (torch.Tensor): The last output of the model.
         """
-        y, dt, embeddings = [], [], []  # outputs
+        y, y2, dt, embeddings = [], [], [], []  # outputs
         for m in self.model:
-            if m.f != -1:  # if not from previous layer
-                x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
-            if profile:
-                self._profile_one_layer(m, x, dt)
-            x = m(x)  # run
-            y.append(x if m.i in self.save else None)  # save output
-            if visualize:
-                feature_visualization(x, m.type, m.i, save_dir=visualize)
-            if embed and m.i in embed:
-                embeddings.append(torch.nn.functional.adaptive_avg_pool2d(x, (1, 1)).squeeze(-1).squeeze(-1))  # flatten
-                if m.i == max(embed):
-                    return torch.unbind(torch.cat(embeddings, 1), dim=0)
+            if m.part == "backbone":
+                x1 = m(x1)
+                x2 = m(x2)
+                y.append(x1 if m.i in self.save else None)
+                y2.append(x2 if m.i in self.save else None)
+            elif m.part == "cat":
+                x1 = y[m.f]
+                x2 = y2[m.f]
+                x = m(x1,x2)
+                y.append(x if m.i in self.save else None)
+            else:
+                if m.f != -1:  # if not from previous layer
+                    x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+                if profile:
+                    self._profile_one_layer(m, x, dt)
+                x = m(x)  # run
+                y.append(x if m.i in self.save else None)  # save output
+                if visualize:
+                    feature_visualization(x, m.type, m.i, save_dir=visualize)
+                if embed and m.i in embed:
+                    embeddings.append(torch.nn.functional.adaptive_avg_pool2d(x, (1, 1)).squeeze(-1).squeeze(-1))  # flatten
+                    if m.i == max(embed):
+                        return torch.unbind(torch.cat(embeddings, 1), dim=0)
         return x
 
     def _predict_augment(self, x):
@@ -283,7 +297,7 @@ class BaseModel(torch.nn.Module):
         if getattr(self, "criterion", None) is None:
             self.criterion = self.init_criterion()
 
-        preds = self.forward(batch["img"]) if preds is None else preds
+        preds = self.forward([batch["img"], batch["dem"]]) if preds is None else preds
         return self.criterion(preds, batch)
 
     def init_criterion(self):
@@ -1001,7 +1015,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2PSA,
         }
     )
-    for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
+    for i, (f, n, m, args) in enumerate(d["backbone"] + d["cat"] + d["head"]):  # from, number, module, args
         m = (
             getattr(torch.nn, m[3:])
             if "nn." in m
@@ -1062,6 +1076,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[0]
             c1 = ch[f]
             args = [*args[1:]]
+        elif m is Cat:
+            c2 = ch[f]
+            args = [c2]
         else:
             c2 = ch[f]
 
@@ -1069,6 +1086,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         t = str(m)[8:-2].replace("__main__.", "")  # module type
         m_.np = sum(x.numel() for x in m_.parameters())  # number params
         m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
+        if i<len(d["backbone"]):
+            m_.part = "backbone"
+        elif i<len(d["cat"])+len(d["backbone"]):
+            m_.part = "cat"
+        else:
+            m_.part = "head"
         if verbose:
             LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10.0f}  {t:<45}{str(args):<30}")  # print
         save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist

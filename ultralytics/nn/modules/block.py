@@ -50,6 +50,7 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
+    "Cat"
 )
 
 
@@ -1108,6 +1109,41 @@ class SCDown(nn.Module):
     def forward(self, x):
         """Applies convolution and downsampling to the input tensor in the SCDown module."""
         return self.cv2(self.cv1(x))
+
+class Cat(nn.Module):
+    def __init__(self, in_channels):
+        super(Cat, self).__init__()
+        # 降维以计算注意力
+        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels, in_channels, kernel_size=1)
+        # 可学习的融合权重
+        self.gamma = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x_ccd, x_dem):
+        """
+        输入：
+            x_ccd: CCD 特征图 [batch_size, in_channels, height, width]
+            x_dem: DEM 特征图 [batch_size, in_channels, height, width]
+        输出：
+            融合后的特征图 [batch_size, in_channels, height, width]
+        """
+        batch_size, C, height, width = x_ccd.size()
+
+        # 计算注意力
+        proj_query = self.query_conv(x_ccd).view(batch_size, -1, width * height).permute(0, 2, 1)  # [B, H*W, C//8]
+        proj_key = self.key_conv(x_dem).view(batch_size, -1, width * height)  # [B, C//8, H*W]
+        energy = torch.bmm(proj_query, proj_key)  # [B, H*W, H*W]
+        attention = F.softmax(energy, dim=-1)  # 注意力权重
+
+        # 应用注意力到 DEM 特征
+        proj_value = self.value_conv(x_dem).view(batch_size, -1, width * height)  # [B, C, H*W]
+        out = torch.bmm(proj_value, attention.permute(0, 2, 1))  # [B, C, H*W]
+        out = out.view(batch_size, C, height, width)  # [B, C, H, W]
+
+        # 残差连接融合
+        out = self.gamma * out + x_ccd
+        return out
 
 
 class TorchVision(nn.Module):
