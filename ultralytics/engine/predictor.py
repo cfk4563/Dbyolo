@@ -36,6 +36,7 @@ import platform
 import re
 import threading
 from pathlib import Path
+from PIL import Image
 
 import cv2
 import numpy as np

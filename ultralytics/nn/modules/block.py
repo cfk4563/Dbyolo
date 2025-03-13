@@ -1110,6 +1110,16 @@ class SCDown(nn.Module):
         """Applies convolution and downsampling to the input tensor in the SCDown module."""
         return self.cv2(self.cv1(x))
 
+# class Cat(nn.Module):
+#     def __init__(self, in_channels):
+#         super(Cat, self).__init__()
+#         pass
+
+#     def forward(self, x):
+#         x_ccd = x[0]
+#         x_dem = x[1]
+#         return x_ccd
+
 class Cat(nn.Module):
     def __init__(self, in_channels):
         super(Cat, self).__init__()
@@ -1120,7 +1130,7 @@ class Cat(nn.Module):
         # 可学习的融合权重
         self.gamma = nn.Parameter(torch.zeros(1))
 
-    def forward(self, x_ccd, x_dem):
+    def forward(self, x):
         """
         输入：
             x_ccd: CCD 特征图 [batch_size, in_channels, height, width]
@@ -1128,6 +1138,8 @@ class Cat(nn.Module):
         输出：
             融合后的特征图 [batch_size, in_channels, height, width]
         """
+        x_ccd = x[0]
+        x_dem = x[1]
         batch_size, C, height, width = x_ccd.size()
 
         # 计算注意力

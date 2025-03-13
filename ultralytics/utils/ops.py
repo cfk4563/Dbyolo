@@ -198,34 +198,24 @@ def non_max_suppression(
     """
     Perform non-maximum suppression (NMS) on a set of boxes, with support for masks and multiple labels per box.
 
-    Args:
-        prediction (torch.Tensor): A tensor of shape (batch_size, num_classes + 4 + num_masks, num_boxes)
-            containing the predicted boxes, classes, and masks. The tensor should be in the format
-            output by a model, such as YOLO.
-        conf_thres (float): The confidence threshold below which boxes will be filtered out.
-            Valid values are between 0.0 and 1.0.
-        iou_thres (float): The IoU threshold below which boxes will be filtered out during NMS.
-            Valid values are between 0.0 and 1.0.
-        classes (List[int]): A list of class indices to consider. If None, all classes will be considered.
-        agnostic (bool): If True, the model is agnostic to the number of classes, and all
-            classes will be considered as one.
-        multi_label (bool): If True, each box may have multiple labels.
-        labels (List[List[Union[int, float, torch.Tensor]]]): A list of lists, where each inner
-            list contains the apriori labels for a given image. The list should be in the format
-            output by a dataloader, with each label being a tuple of (class_index, x1, y1, x2, y2).
-        max_det (int): The maximum number of boxes to keep after NMS.
-        nc (int, optional): The number of classes output by the model. Any indices after this will be considered masks.
-        max_time_img (float): The maximum time (seconds) for processing one image.
-        max_nms (int): The maximum number of boxes into torchvision.ops.nms().
-        max_wh (int): The maximum box width and height in pixels.
-        in_place (bool): If True, the input prediction tensor will be modified in place.
-        rotated (bool): If Oriented Bounding Boxes (OBB) are being passed for NMS.
-        end2end (bool): If the model doesn't require NMS.
-
-    Returns:
-        (List[torch.Tensor]): A list of length batch_size, where each element is a tensor of
-            shape (num_boxes, 6 + num_masks) containing the kept boxes, with columns
-            (x1, y1, x2, y2, confidence, class, mask1, mask2, ...).
+    参数：
+        prediction (torch.Tensor): 形状为 (batch_size, num_classes + 4 + num_masks, num_boxes) 的张量，包含预测的边界框、类别和掩码。该张量应为模型输出的格式，例如 YOLO。
+        conf_thres (float): 置信度阈值，低于此阈值的边界框将被过滤掉。有效值范围为 0.0 到 1.0。
+        iou_thres (float): IoU 阈值，低于此阈值的边界框在 NMS 过程中将被过滤掉。有效值范围为 0.0 到 1.0。
+        classes (List[int]): 要考虑的类别索引列表。如果为 None，则考虑所有类别。
+        agnostic (bool): 如果为 True，则模型对类别数量不可知，所有类别将被视为一个类别。
+        multi_label (bool): 如果为 True，则每个边界框可能有多个标签。
+        labels (List[List[Union[int, float, torch.Tensor]]]): 一个列表的列表，其中每个内部列表包含给定图像的先验标签。列表的格式应与数据加载器的输出格式一致，每个标签为 (class_index, x1, y1, x2, y2) 的元组。
+        max_det (int): NMS 后保留的最大边界框数量。
+        nc (int, 可选): 模型输出的类别数量。此索引之后的任何索引将被视为掩码。
+        max_time_img (float): 处理一张图像的最大时间（秒）。
+        max_nms (int): 输入到 torchvision.ops.nms() 的最大边界框数量。
+        max_wh (int): 边界框的最大宽度和高度（以像素为单位）。
+        in_place (bool): 如果为 True，则输入预测张量将被原地修改。
+        rotated (bool): 如果传入的边界框是旋转边界框（OBB）。
+        end2end (bool): 如果模型不需要 NMS。
+    返回值：
+        (List[torch.Tensor]): 一个长度为 batch_size 的列表，其中每个元素是一个形状为 (num_boxes, 6 + num_masks) 的张量，包含保留的边界框，列依次为 (x1, y1, x2, y2, confidence, class, mask1, mask2, ...)。
     """
     import torchvision  # scope for faster 'import ultralytics'
 

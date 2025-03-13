@@ -536,7 +536,7 @@ class AutoBackend(nn.Module):
         Runs inference on the YOLOv8 MultiBackend model.
 
         Args:
-            im (torch.Tensor): The image tensor to perform inference on.
+            im (torch.Tensor|list): The image tensor to perform inference on.
             augment (bool): whether to perform data augmentation during inference, defaults to False
             visualize (bool): whether to visualize the output predictions, defaults to False
             embed (list, optional): A list of feature vectors/embeddings to return.
@@ -544,8 +544,8 @@ class AutoBackend(nn.Module):
         Returns:
             (tuple): Tuple containing the raw output tensor, and processed output for visualization (if visualize=True)
         """
-        b, ch, h, w = im.shape  # batch, channel, height, width
-        if self.fp16 and im.dtype != torch.float16:
+        b, ch, h, w = im[0].shape  # batch, channel, height, width
+        if self.fp16 and im[0].dtype != torch.float16:
             im = im.half()  # to FP16
         if self.nhwc:
             im = im.permute(0, 2, 3, 1)  # torch BCHW to numpy BHWC shape(1,320,192,3)
@@ -768,7 +768,7 @@ class AutoBackend(nn.Module):
         if any(warmup_types) and (self.device.type != "cpu" or self.triton):
             im = torch.empty(*imgsz, dtype=torch.half if self.fp16 else torch.float, device=self.device)  # input
             for _ in range(2 if self.jit else 1):
-                self.forward(im)  # warmup
+                self.forward([im,im])  # warmup
 
     @staticmethod
     def _model_type(p="path/to/model.pt"):

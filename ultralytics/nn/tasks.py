@@ -146,14 +146,10 @@ class BaseModel(torch.nn.Module):
         for m in self.model:
             if m.part == "backbone":
                 x1 = m(x1)
-                x2 = m(x2)
                 y.append(x1 if m.i in self.save else None)
-                y2.append(x2 if m.i in self.save else None)
-            elif m.part == "cat":
-                x1 = y[m.f]
-                x2 = y2[m.f]
-                x = m(x1,x2)
-                y.append(x if m.i in self.save else None)
+            elif m.part == "backbone2":
+                x2  = m(x2)
+                y.append(x2 if m.i in self.save else None)
             else:
                 if m.f != -1:  # if not from previous layer
                     x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
@@ -1015,7 +1011,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2PSA,
         }
     )
-    for i, (f, n, m, args) in enumerate(d["backbone"] + d["cat"] + d["head"]):  # from, number, module, args
+    for i, (f, n, m, args) in enumerate(d["backbone"] + d["backbone2"] + d["cat"] + d["head"]):  # from, number, module, args
         m = (
             getattr(torch.nn, m[3:])
             if "nn." in m
@@ -1030,6 +1026,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
         if m in base_modules:
             c1, c2 = ch[f], args[0]
+            if m in frozenset({Focus, Conv}) and i == 9:
+                c1 = 3
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             if m is C2fAttn:  # set 1) embed channels and 2) num heads
@@ -1077,7 +1075,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c1 = ch[f]
             args = [*args[1:]]
         elif m is Cat:
-            c2 = ch[f]
+            c2 = ch[f[0]]
             args = [c2]
         else:
             c2 = ch[f]
@@ -1088,8 +1086,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
         if i<len(d["backbone"]):
             m_.part = "backbone"
-        elif i<len(d["cat"])+len(d["backbone"]):
-            m_.part = "cat"
+        elif i<len(d["backbone"])+len(d["backbone2"]):
+            m_.part = "backbone2"
         else:
             m_.part = "head"
         if verbose:
