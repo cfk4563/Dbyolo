@@ -251,15 +251,16 @@ class BasePredictor:
             self.run_callbacks("on_predict_start")
             for self.batch in self.dataset:
                 self.run_callbacks("on_predict_batch_start")
-                paths, im0s, s = self.batch
+                paths, im0s, dem0s, s = self.batch
 
                 # Preprocess
                 with profilers[0]:
                     im = self.preprocess(im0s)
+                    dem = self.preprocess(dem0s)
 
                 # Inference
                 with profilers[1]:
-                    preds = self.inference(im, *args, **kwargs)
+                    preds = self.inference([im,dem], *args, **kwargs)
                     if self.args.embed:
                         yield from [preds] if isinstance(preds, torch.Tensor) else preds  # yield embedding tensors
                         continue
