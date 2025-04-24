@@ -371,7 +371,7 @@ class LoadImagesAndVideos:
 
     def __next__(self):
         """Returns the next batch of images or video frames with their paths and metadata."""
-        paths, imgs, info = [], [], []
+        paths, imgs, dems, info = [], [], [], []
         while len(imgs) < self.bs:
             if self.count >= self.nf:  # end of file list
                 if imgs:
@@ -422,17 +422,20 @@ class LoadImagesAndVideos:
                         im0 = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)  # convert image to BGR nparray
                 else:
                     im0 = imread(path)  # BGR
+                    dem_path = path.replace("gray", "dem")
+                    dem0 = imread(dem_path)
                 if im0 is None:
                     LOGGER.warning(f"WARNING ⚠️ Image Read Error {path}")
                 else:
                     paths.append(path)
                     imgs.append(im0)
+                    dems.append(dem0)
                     info.append(f"image {self.count + 1}/{self.nf} {path}: ")
                 self.count += 1  # move to the next file
                 if self.count >= self.ni:  # end of image list
                     break
 
-        return paths, imgs, info
+        return paths, imgs, dems, info
 
     def _new_video(self, path):
         """Creates a new video capture object for the given path and initializes video-related attributes."""

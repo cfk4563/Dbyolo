@@ -121,14 +121,14 @@ def draw_heatmap(feature_maps):
     heatmap = heatmap / (heatmap_max + 1e-6)  # 添加小值防止除以零
     heatmap = heatmap.astype(np.float32)
     heatmap = cv2.resize(heatmap, (608, 608))
-    
+
     # 创建彩色热力图
     heatmap_color = cv2.applyColorMap((heatmap * 255).astype(np.uint8), cv2.COLORMAP_JET)
     return heatmap_color
 
-def main():
+def main(weights_path,ccd_path,dem_path):
     # 从权重文件加载状态字典
-    weights_path = "D:\\Desktop\\DByolo\\runs\\detect\\train5\\weights\\best.pt"
+    # weights_path = "D:\\Desktop\\DByolo\\runs\\detect\\train5\\weights\\best.pt"
     state_dict = torch.load(weights_path)
     model = state_dict['model'].to("cuda")
 
@@ -139,8 +139,8 @@ def main():
         break  # 只打印第一个参数
 
     # 加载图像并预处理
-    ccd_path = 'D:\\Desktop\\DByolo\\datasets\\LROC\\gray\\train\\img_224.jpg'
-    dem_path = 'D:\\Desktop\\DByolo\\datasets\\LROC\\dem\\train\\img_224.jpg'
+    # ccd_path = 'D:\\Desktop\\DByolo\\datasets\\LROC\\gray\\train\\img_224.jpg'
+    # dem_path = 'D:\\Desktop\\DByolo\\datasets\\LROC\\dem\\train\\img_224.jpg'
     ccd = cv2.imread(ccd_path)
     dem = cv2.imread(dem_path)
 
@@ -170,41 +170,45 @@ def main():
         end2end=False,
         rotated=False,
     )
- 
+
     plot_images(
         ccd_processed,
         *output_to_target(preds, max_det=300),
         paths=ccd_path,
         fname="pred.jpg",
-        names={0:"crater"},
+        names={0:""},
         )
     return feature_maps, ccd, dem
 
-feature_maps, ccd, dem = main()
+weights_path = "D:\\Desktop\\20250330数据\\DByolo\\runs\\detect\\TFAM\\weights\\best.pt"
+ccd_path = 'D:\\Desktop\\val\\gray\\img_224.jpg'
+dem_path = 'D:\\Desktop\\val\\gray\\img_224.jpg'
 
-for i in [18,19,20,27,30,33]:
-# 绘制热力图
-    heatmap = draw_heatmap(feature_maps[i])
+feature_maps, ccd, dem = main(weights_path, ccd_path, dem_path)
 
-    # 将热力图与原图叠加
-    overlay = cv2.addWeighted(ccd, 0.6, heatmap, 0.4, 0)
-
-    # 显示结果
-    plt.figure(figsize=(15, 5))
-
-    plt.subplot(132)
-    plt.imshow(cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
-    plt.title('Heatmap')
-    plt.axis('off')
-
-    plt.subplot(133)
-    plt.imshow(cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB))
-    plt.title('Overlay')
-    plt.axis('off')
-
-    plt.tight_layout()
-    plt.show()
-
-    # 保存结果
-    cv2.imwrite(f'./heatmap/heatmap{i}.jpg', heatmap)
-    cv2.imwrite(f'./heatmap/overlay{i}.jpg', overlay)
+# for i in [18,19,20,27,30,33]:
+# # 绘制热力图
+#     heatmap = draw_heatmap(feature_maps[i])
+#
+#     # 将热力图与原图叠加
+#     overlay = cv2.addWeighted(ccd, 0.6, heatmap, 0.4, 0)
+#
+#     # 显示结果
+#     plt.figure(figsize=(15, 5))
+#
+#     plt.subplot(132)
+#     plt.imshow(cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
+#     plt.title('Heatmap')
+#     plt.axis('off')
+#
+#     plt.subplot(133)
+#     plt.imshow(cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB))
+#     plt.title('Overlay')
+#     plt.axis('off')
+#
+#     plt.tight_layout()
+#     plt.show()
+#
+#     # 保存结果
+#     cv2.imwrite(f'./heatmap/heatmap{i}.jpg', heatmap)
+#     cv2.imwrite(f'./heatmap/overlay{i}.jpg', overlay)
