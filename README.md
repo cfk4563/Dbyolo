@@ -1,6 +1,6 @@
 # 双主干网络用于月球陨石坑预测
 
-种基于双主干特征融合网络的月球陨石坑识别模型DBYOLO（Dual-Backbone YOLO Network for Lunar Crater Detection），具有两个关键创新点，第一个创新点是提出双主干网络分别处理来自月球侦察轨道器相机获取CCD影像和和DTM影像，分别学习CCD影像的纹理边缘特征和DEM影像的地形深度特征，第二个创新点是提出了基于注意力机制的特征融合模块，实现了多源数据特征的动态融合，有效提取月球表面CCD影像和DEM数据的互补信息，提升了月球复杂表面环境下的检测性能。
+一种基于双主干特征融合网络的月球陨石坑识别模型DBYOLO（Dual-Backbone YOLO Network for Lunar Crater Detection），具有两个创新点，第一个创新点是提出双主干网络分别处理来自月球侦察轨道器相机获取CCD影像和和DTM影像，分别学习CCD影像的纹理边缘特征和DEM影像的地形深度特征，第二个创新点是提出了基于注意力机制的特征融合模块，实现了多源数据特征的动态融合，提取月球表面CCD影像和DEM数据的互补信息，来实现陨石坑的目标检测。
 
 ## 数据集结构
 
@@ -59,8 +59,8 @@ LROC/
 ```yaml
 path: D:\Desktop\DByolo\datasets\LROC  # 数据路径
 train: train.txt      # txt文件里面包含训练图片路径
-val: val.txt          # txt文件里面包含训练图片路径
-test: test.txt        # txt文件里面包含训练图片路径
+val: val.txt          # txt文件里面包含验证图片路径
+test: test.txt        # txt文件里面包含测试图片路径
 
 # Classes
 names:
