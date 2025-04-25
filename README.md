@@ -66,3 +66,15 @@ test: test.txt        # txt文件里面包含训练图片路径
 names:
   0: crater
 ```
+## 训练
+```python
+python train.py
+```
+## 验证
+```python
+python test.py
+```
+## 预测
+```python
+python heatmap.py
+```
