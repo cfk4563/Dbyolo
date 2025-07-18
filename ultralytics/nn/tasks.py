@@ -10,6 +10,10 @@ from pathlib import Path
 import thop
 import torch
 
+from ultralytics.nn.modules.dbyolo import DWRConv,Cat,CaC,DFM,TFAM
+from ultralytics.nn.modules.deyolo import DEA,C2f_BiFocus
+from ultralytics.nn.modules.yolofusion import CDC
+
 from ultralytics.nn.modules import (
     AIFI,
     C1,
@@ -63,7 +67,7 @@ from ultralytics.nn.modules import (
     TorchVision,
     WorldDetect,
     v10Detect,
-    Cat,
+    A2C2f
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -991,6 +995,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             PSA,
             SCDown,
             C2fCIB,
+            A2C2f,
+            C2f_BiFocus,
+            DWRConv
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1009,6 +1016,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2fPSA,
             C2fCIB,
             C2PSA,
+            A2C2f,
+            C2f_BiFocus
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["backbone2"] + d["cat"] + d["head"]):  # from, number, module, args
@@ -1026,7 +1035,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
         if m in base_modules:
             c1, c2 = ch[f], args[0]
-            if m in frozenset({Focus, Conv}) and i == 9:
+            if m in frozenset({Focus, Conv}) and i == len(d["backbone"]):
                 c1 = 3
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
@@ -1074,9 +1083,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[0]
             c1 = ch[f]
             args = [*args[1:]]
-        elif m is Cat:
+        elif m in frozenset({Cat, DFM, TFAM, CaC, DEA}):
             c2 = ch[f[0]]
             args = [c2]
+        elif m is CDC:
+            c2 = ch[f[0]]
+            args = [c2, args[1], args[2]]
         else:
             c2 = ch[f]
 

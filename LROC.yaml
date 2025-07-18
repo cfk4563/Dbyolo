@@ -1,7 +1,7 @@
-path: D:\Desktop\DByolo\datasets\LROC
-train: train.txt
-val: val.txt
-test: test.txt
+path: D:\Chenfk\DByolo\datasets\LROC
+train: gray\train
+val: gray\val
+test: gray\test
 
 # Classes
 names:

@@ -57,7 +57,7 @@ from .block import (
     ResNetLayer,
     SCDown,
     TorchVision,
-    Cat
+    A2C2f
 )
 from .conv import (
     CBAM,
@@ -161,5 +161,5 @@ __all__ = (
     "PSA",
     "TorchVision",
     "Index",
-    "Cat"
+    "A2C2f"
 )

@@ -50,7 +50,7 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
-    "Cat"
+    "A2C2f"
 )
 
 
@@ -1110,236 +1110,7 @@ class SCDown(nn.Module):
         """Applies convolution and downsampling to the input tensor in the SCDown module."""
         return self.cv2(self.cv1(x))
 
-######### Concat and conv ##############
 
-# class Cat(nn.Module):
-#     def __init__(self, in_channels):
-#         super(Cat, self).__init__()
-#         # 1x1 卷积将拼接后的 2*in_channels 降维到 in_channels
-#         self.conv = nn.Conv2d(in_channels * 2, in_channels, kernel_size=1, bias=False)
-#         self.bn = nn.BatchNorm2d(in_channels)  # 添加 BN 提升稳定性
-#
-#     def forward(self, x):
-#         x_ccd = x[0]  # [B, C, H, W]
-#         x_dem = x[1]  # [B, C, H, W]
-#         # 沿通道维度拼接
-#         out = torch.cat([x_ccd, x_dem], dim=1)  # [B, 2*C, H, W]
-#         # 1x1 卷积降维
-#         out = self.conv(out)  # [B, C, H, W]
-#         out = self.bn(out)  # [B, C, H, W]
-#         return out
-
-################# 消融实验 #####################
-# class Cat(nn.Module):
-#     def __init__(self, in_channels):
-#         super(Cat, self).__init__()
-#         pass
-
-#     def forward(self, x):
-#         x_ccd = x[0]
-#         x_dem = x[1]
-#         return x_ccd
-
-################ Attention feature fusion ###########
-
-class Cat(nn.Module):
-    def __init__(self, in_channels):
-        super(Cat, self).__init__()
-        # 降维以计算注意力
-        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
-        self.value_conv = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        # 可学习的融合权重
-        self.gamma = nn.Parameter(torch.zeros(1))
-
-    def forward(self, x):
-        """
-        输入：
-            x_ccd: CCD 特征图 [batch_size, in_channels, height, width]
-            x_dem: DEM 特征图 [batch_size, in_channels, height, width]
-        输出：
-            融合后的特征图 [batch_size, in_channels, height, width]
-        """
-        x_ccd = x[0]
-        x_dem = x[1]
-        batch_size, C, height, width = x_ccd.size()
-
-        # 计算注意力
-        proj_query = self.query_conv(x_ccd).view(batch_size, -1, width * height).permute(0, 2, 1)  # [B, H*W, C//8]
-        proj_key = self.key_conv(x_dem).view(batch_size, -1, width * height)  # [B, C//8, H*W]
-        energy = torch.bmm(proj_query, proj_key)  # [B, H*W, H*W]
-        attention = F.softmax(energy, dim=-1)  # 注意力权重
-
-        # 应用注意力到 DEM 特征
-        proj_value = self.value_conv(x_dem).view(batch_size, -1, width * height)  # [B, C, H*W]
-        out = torch.bmm(proj_value, attention.permute(0, 2, 1))  # [B, C, H*W]
-        out = out.view(batch_size, C, height, width)  # [B, C, H, W]
-
-        # 残差连接融合
-        out = self.gamma * out + x_ccd
-        return out
-
-################### TFAM #####################
-# class densecat_cat_add(nn.Module):
-#     def __init__(self, in_chn, out_chn):
-#         super(densecat_cat_add, self).__init__()
-#
-#         self.conv1 = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, in_chn, kernel_size=3, padding=1),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#         self.conv2 = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, in_chn, kernel_size=3, padding=1),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#         self.conv3 = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, in_chn, kernel_size=3, padding=1),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#         self.conv_out = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, out_chn, kernel_size=1, padding=0),
-#             torch.nn.BatchNorm2d(out_chn),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#
-#     def forward(self, x, y):
-#         x1 = self.conv1(x)
-#         x2 = self.conv2(x1)
-#         x3 = self.conv3(x2 + x1)
-#
-#         y1 = self.conv1(y)
-#         y2 = self.conv2(y1)
-#         y3 = self.conv3(y2 + y1)
-#
-#         return self.conv_out(x1 + x2 + x3 + y1 + y2 + y3)
-#
-#
-# class densecat_cat_diff(nn.Module):
-#     def __init__(self, in_chn, out_chn):
-#         super(densecat_cat_diff, self).__init__()
-#         self.conv1 = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, in_chn, kernel_size=3, padding=1),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#         self.conv2 = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, in_chn, kernel_size=3, padding=1),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#         self.conv3 = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, in_chn, kernel_size=3, padding=1),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#         self.conv_out = torch.nn.Sequential(
-#             torch.nn.Conv2d(in_chn, out_chn, kernel_size=1, padding=0),
-#             torch.nn.BatchNorm2d(out_chn),
-#             torch.nn.ReLU(inplace=True),
-#         )
-#
-#     def forward(self, x, y):
-#         x1 = self.conv1(x)
-#         x2 = self.conv2(x1)
-#         x3 = self.conv3(x2 + x1)
-#
-#         y1 = self.conv1(y)
-#         y2 = self.conv2(y1)
-#         y3 = self.conv3(y2 + y1)
-#         out = self.conv_out(torch.abs(x1 + x2 + x3 - y1 - y2 - y3))
-#         return out
-#
-#
-# class Cat(nn.Module):
-#     def __init__(self, dim_in, dim_out, reduction=True):
-#         super(Cat, self).__init__()
-#         if reduction:
-#             self.reduction = torch.nn.Sequential(
-#                 torch.nn.Conv2d(dim_in, dim_in // 2, kernel_size=1, padding=0),
-#                 nn.BatchNorm2d(dim_in // 2),
-#                 torch.nn.ReLU(inplace=True),
-#             )
-#             dim_in = dim_in // 2
-#         else:
-#             self.reduction = None
-#         self.cat1 = densecat_cat_add(dim_in, dim_out)
-#         self.cat2 = densecat_cat_diff(dim_in, dim_out)
-#         self.conv1 = nn.Sequential(
-#             nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1),
-#             nn.BatchNorm2d(dim_out),
-#             nn.ReLU(inplace=True),
-#         )
-#
-#     def forward(self, x):
-#         x1 = x[0]
-#         x2 = x[1]
-#         if self.reduction is not None:
-#             x1 = self.reduction(x1)
-#             x2 = self.reduction(x2)
-#         x_add = self.cat1(x1, x2)
-#         x_diff = self.cat2(x1, x2)
-#         y = self.conv1(x_diff) + x_add
-#         return y
-
-################### DFM ##################
-
-# import math
-# def kernel_size(in_channel):
-#     """Compute kernel size for one dimension convolution in eca-net"""
-#     k = int((math.log2(in_channel) + 1) // 2)  # parameters from ECA-net
-#     if k % 2 == 0:
-#         return k + 1
-#     else:
-#         return k
-#
-# class Cat(nn.Module):
-#     """Fuse two feature into one feature."""
-#
-#     def __init__(self, in_channel):
-#         super().__init__()
-#
-#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-#         self.max_pool = nn.AdaptiveMaxPool2d(1)
-#         self.k = kernel_size(in_channel)
-#         self.channel_conv1 = nn.Conv1d(4, 1, kernel_size=self.k, padding=self.k // 2)
-#         self.channel_conv2 = nn.Conv1d(4, 1, kernel_size=self.k, padding=self.k // 2)
-#         self.spatial_conv1 = nn.Conv2d(4, 1, kernel_size=7, padding=3)
-#         self.spatial_conv2 = nn.Conv2d(4, 1, kernel_size=7, padding=3)
-#         self.softmax = nn.Softmax(0)
-#
-#     def forward(self, x, log=None, module_name=None,
-#                 img_name=None):
-#         # channel part
-#         t1 = x[0]
-#         t2 = x[1]
-#         t1_channel_avg_pool = self.avg_pool(t1)  # b,c,1,1
-#         t1_channel_max_pool = self.max_pool(t1)  # b,c,1,1
-#         t2_channel_avg_pool = self.avg_pool(t2)  # b,c,1,1
-#         t2_channel_max_pool = self.max_pool(t2)  # b,c,1,1
-#
-#         channel_pool = torch.cat([t1_channel_avg_pool, t1_channel_max_pool,
-#                                   t2_channel_avg_pool, t2_channel_max_pool],
-#                                  dim=2).squeeze(-1).transpose(1, 2)  # b,4,c
-#         t1_channel_attention = self.channel_conv1(channel_pool)  # b,1,c
-#         t2_channel_attention = self.channel_conv2(channel_pool)  # b,1,c
-#         channel_stack = torch.stack([t1_channel_attention, t2_channel_attention],
-#                                     dim=0)  # 2,b,1,c
-#         channel_stack = self.softmax(channel_stack).transpose(-1, -2).unsqueeze(-1)  # 2,b,c,1,1
-#
-#         # spatial part
-#         t1_spatial_avg_pool = torch.mean(t1, dim=1, keepdim=True)  # b,1,h,w
-#         t1_spatial_max_pool = torch.max(t1, dim=1, keepdim=True)[0]  # b,1,h,w
-#         t2_spatial_avg_pool = torch.mean(t2, dim=1, keepdim=True)  # b,1,h,w
-#         t2_spatial_max_pool = torch.max(t2, dim=1, keepdim=True)[0]  # b,1,h,w
-#         spatial_pool = torch.cat([t1_spatial_avg_pool, t1_spatial_max_pool,
-#                                   t2_spatial_avg_pool, t2_spatial_max_pool], dim=1)  # b,4,h,w
-#         t1_spatial_attention = self.spatial_conv1(spatial_pool)  # b,1,h,w
-#         t2_spatial_attention = self.spatial_conv2(spatial_pool)  # b,1,h,w
-#         spatial_stack = torch.stack([t1_spatial_attention, t2_spatial_attention], dim=0)  # 2,b,1,h,w
-#         spatial_stack = self.softmax(spatial_stack)  # 2,b,1,h,w
-#
-#         # fusion part, add 1 means residual add
-#         stack_attention = channel_stack + spatial_stack + 1  # 2,b,c,h,w
-#         fuse = stack_attention[0] * t1 + stack_attention[1] * t2  # b,c,h,w
-#
-#         return fuse
 
 class TorchVision(nn.Module):
     """
@@ -1384,4 +1155,242 @@ class TorchVision(nn.Module):
             y.extend(m(y[-1]) for m in self.m)
         else:
             y = self.m(x)
+        return y
+
+
+
+class AAttn(nn.Module):
+    """
+    Area-attention module for YOLO models, providing efficient attention mechanisms.
+
+    This module implements an area-based attention mechanism that processes input features in a spatially-aware manner,
+    making it particularly effective for object detection tasks.
+
+    Attributes:
+        area (int): Number of areas the feature map is divided.
+        num_heads (int): Number of heads into which the attention mechanism is divided.
+        head_dim (int): Dimension of each attention head.
+        qkv (Conv): Convolution layer for computing query, key and value tensors.
+        proj (Conv): Projection convolution layer.
+        pe (Conv): Position encoding convolution layer.
+
+    Methods:
+        forward: Applies area-attention to input tensor.
+
+    Examples:
+        >>> attn = AAttn(dim=256, num_heads=8, area=4)
+        >>> x = torch.randn(1, 256, 32, 32)
+        >>> output = attn(x)
+        >>> print(output.shape)
+        torch.Size([1, 256, 32, 32])
+    """
+
+    def __init__(self, dim: int, num_heads: int, area: int = 1):
+        """
+        Initialize an Area-attention module for YOLO models.
+
+        Args:
+            dim (int): Number of hidden channels.
+            num_heads (int): Number of heads into which the attention mechanism is divided.
+            area (int): Number of areas the feature map is divided.
+        """
+        super().__init__()
+        self.area = area
+
+        self.num_heads = num_heads
+        self.head_dim = head_dim = dim // num_heads
+        all_head_dim = head_dim * self.num_heads
+
+        self.qkv = Conv(dim, all_head_dim * 3, 1, act=False)
+        self.proj = Conv(all_head_dim, dim, 1, act=False)
+        self.pe = Conv(all_head_dim, dim, 7, 1, 3, g=dim, act=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Process the input tensor through the area-attention.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            (torch.Tensor): Output tensor after area-attention.
+        """
+        B, C, H, W = x.shape
+        N = H * W
+
+        qkv = self.qkv(x).flatten(2).transpose(1, 2)
+        if self.area > 1:
+            qkv = qkv.reshape(B * self.area, N // self.area, C * 3)
+            B, N, _ = qkv.shape
+        q, k, v = (
+            qkv.view(B, N, self.num_heads, self.head_dim * 3)
+            .permute(0, 2, 3, 1)
+            .split([self.head_dim, self.head_dim, self.head_dim], dim=2)
+        )
+        attn = (q.transpose(-2, -1) @ k) * (self.head_dim**-0.5)
+        attn = attn.softmax(dim=-1)
+        x = v @ attn.transpose(-2, -1)
+        x = x.permute(0, 3, 1, 2)
+        v = v.permute(0, 3, 1, 2)
+
+        if self.area > 1:
+            x = x.reshape(B // self.area, N * self.area, C)
+            v = v.reshape(B // self.area, N * self.area, C)
+            B, N, _ = x.shape
+
+        x = x.reshape(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+        v = v.reshape(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+
+        x = x + self.pe(v)
+        return self.proj(x)
+
+class ABlock(nn.Module):
+    """
+    Area-attention block module for efficient feature extraction in YOLO models.
+
+    This module implements an area-attention mechanism combined with a feed-forward network for processing feature maps.
+    It uses a novel area-based attention approach that is more efficient than traditional self-attention while
+    maintaining effectiveness.
+
+    Attributes:
+        attn (AAttn): Area-attention module for processing spatial features.
+        mlp (nn.Sequential): Multi-layer perceptron for feature transformation.
+
+    Methods:
+        _init_weights: Initializes module weights using truncated normal distribution.
+        forward: Applies area-attention and feed-forward processing to input tensor.
+
+    Examples:
+        >>> block = ABlock(dim=256, num_heads=8, mlp_ratio=1.2, area=1)
+        >>> x = torch.randn(1, 256, 32, 32)
+        >>> output = block(x)
+        >>> print(output.shape)
+        torch.Size([1, 256, 32, 32])
+    """
+
+    def __init__(self, dim: int, num_heads: int, mlp_ratio: float = 1.2, area: int = 1):
+        """
+        Initialize an Area-attention block module.
+
+        Args:
+            dim (int): Number of input channels.
+            num_heads (int): Number of heads into which the attention mechanism is divided.
+            mlp_ratio (float): Expansion ratio for MLP hidden dimension.
+            area (int): Number of areas the feature map is divided.
+        """
+        super().__init__()
+
+        self.attn = AAttn(dim, num_heads=num_heads, area=area)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = nn.Sequential(Conv(dim, mlp_hidden_dim, 1), Conv(mlp_hidden_dim, dim, 1, act=False))
+
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m: nn.Module):
+        """
+        Initialize weights using a truncated normal distribution.
+
+        Args:
+            m (nn.Module): Module to initialize.
+        """
+        if isinstance(m, nn.Conv2d):
+            nn.init.trunc_normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass through ABlock.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            (torch.Tensor): Output tensor after area-attention and feed-forward processing.
+        """
+        x = x + self.attn(x)
+        return x + self.mlp(x)
+
+class A2C2f(nn.Module):
+    """
+    Area-Attention C2f module for enhanced feature extraction with area-based attention mechanisms.
+
+    This module extends the C2f architecture by incorporating area-attention and ABlock layers for improved feature
+    processing. It supports both area-attention and standard convolution modes.
+
+    Attributes:
+        cv1 (Conv): Initial 1x1 convolution layer that reduces input channels to hidden channels.
+        cv2 (Conv): Final 1x1 convolution layer that processes concatenated features.
+        gamma (nn.Parameter | None): Learnable parameter for residual scaling when using area attention.
+        m (nn.ModuleList): List of either ABlock or C3k modules for feature processing.
+
+    Methods:
+        forward: Processes input through area-attention or standard convolution pathway.
+
+    Examples:
+        >>> m = A2C2f(512, 512, n=1, a2=True, area=1)
+        >>> x = torch.randn(1, 512, 32, 32)
+        >>> output = m(x)
+        >>> print(output.shape)
+        torch.Size([1, 512, 32, 32])
+    """
+
+    def __init__(
+        self,
+        c1: int,
+        c2: int,
+        n: int = 1,
+        a2: bool = True,
+        area: int = 1,
+        residual: bool = False,
+        mlp_ratio: float = 2.0,
+        e: float = 0.5,
+        g: int = 1,
+        shortcut: bool = True,
+    ):
+        """
+        Initialize Area-Attention C2f module.
+
+        Args:
+            c1 (int): Number of input channels.
+            c2 (int): Number of output channels.
+            n (int): Number of ABlock or C3k modules to stack.
+            a2 (bool): Whether to use area attention blocks. If False, uses C3k blocks instead.
+            area (int): Number of areas the feature map is divided.
+            residual (bool): Whether to use residual connections with learnable gamma parameter.
+            mlp_ratio (float): Expansion ratio for MLP hidden dimension.
+            e (float): Channel expansion ratio for hidden channels.
+            g (int): Number of groups for grouped convolutions.
+            shortcut (bool): Whether to use shortcut connections in C3k blocks.
+        """
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        assert c_ % 32 == 0, "Dimension of ABlock be a multiple of 32."
+
+        self.cv1 = Conv(c1, c_, 1, 1)
+        self.cv2 = Conv((1 + n) * c_, c2, 1)
+
+        self.gamma = nn.Parameter(0.01 * torch.ones(c2), requires_grad=True) if a2 and residual else None
+        self.m = nn.ModuleList(
+            nn.Sequential(*(ABlock(c_, c_ // 32, mlp_ratio, area) for _ in range(2)))
+            if a2
+            else C3k(c_, c_, 2, shortcut, g)
+            for _ in range(n)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass through A2C2f layer.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            (torch.Tensor): Output tensor after processing.
+        """
+        y = [self.cv1(x)]
+        y.extend(m(y[-1]) for m in self.m)
+        y = self.cv2(torch.cat(y, 1))
+        if self.gamma is not None:
+            return x + self.gamma.view(-1, len(self.gamma), 1, 1) * y
         return y
