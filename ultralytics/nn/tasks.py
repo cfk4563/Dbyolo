@@ -13,6 +13,7 @@ import torch
 from ultralytics.nn.modules.dbyolo import DWRConv,Cat,CaC,DFM,TFAM
 from ultralytics.nn.modules.deyolo import DEA,C2f_BiFocus
 from ultralytics.nn.modules.yolofusion import CDC
+from ultralytics.nn.modules.superyolo import MF
 
 from ultralytics.nn.modules import (
     AIFI,

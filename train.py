@@ -11,14 +11,14 @@ from ultralytics import YOLO
 
 if __name__ == '__main__':
     yaml = [
-        "DByolo.yaml",
-        "DEyolo.yaml",
-        # "yoloDB10.yaml",
+        # "DByolo.yaml",
+        # "DEyolo.yaml",
+        "YOLOFusion.yaml",
         # "yoloDB11.yaml",
         # "yoloDB12.yaml",
     ]
     for item in yaml:
-        model = YOLO(item).load("yolov8n.pt")
+        model = YOLO(item)
         name = item.split(".")[0]
         results = model.train(data="LROC.yaml",
                               epochs=200,
