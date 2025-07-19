@@ -1,3 +1,5 @@
+import os.path
+
 import torch
 import cv2
 import matplotlib.pyplot as plt
@@ -126,7 +128,7 @@ def draw_heatmap(feature_maps):
     heatmap_color = cv2.applyColorMap((heatmap * 255).astype(np.uint8), cv2.COLORMAP_JET)
     return heatmap_color
 
-def main(weights_path,ccd_path,dem_path):
+def main(weights_path,ccd_path,dem_path,save):
     # 从权重文件加载状态字典
     # weights_path = "D:\\Desktop\\DByolo\\runs\\detect\\train5\\weights\\best.pt"
     state_dict = torch.load(weights_path)
@@ -175,16 +177,39 @@ def main(weights_path,ccd_path,dem_path):
         ccd_processed,
         *output_to_target(preds, max_det=300),
         paths=ccd_path,
-        fname="pred.jpg",
+        fname="ccd"+save,
         names={0:""},
         )
+    plot_images(
+        dem_processed,
+        *output_to_target(preds, max_det=300),
+        paths=ccd_path,
+        fname="dem"+save,
+        names={0: ""},
+    )
     return feature_maps, ccd, dem
 
-weights_path = "D:\\Desktop\\20250330数据\\DByolo\\runs\\detect\\TFAM\\weights\\best.pt"
-ccd_path = 'D:\\Desktop\\val\\gray\\img_224.jpg'
-dem_path = 'D:\\Desktop\\val\\gray\\img_224.jpg'
+weights_list = [r"D:\Dbyolo\runs\detect\DByolo\\weights\best.pt",
+                r"D:\Dbyolo\runs\detect\DEyolo\\weights\best.pt",
+                r"D:\Dbyolo\runs\detect\YOLOFusion2\weights\best.pt",]
 
-feature_maps, ccd, dem = main(weights_path, ccd_path, dem_path)
+ccd_list = [r'C:\Users\HP\Desktop\image\img_56.jpg',
+            r'C:\Users\HP\Desktop\image\img_446.jpg',
+            r'C:\Users\HP\Desktop\image\img_478.jpg',
+            r'C:\Users\HP\Desktop\image\img_1173.jpg',
+            r'C:\Users\HP\Desktop\image\img_3685.jpg',
+            ]
+
+for weights in weights_list:
+    # save = weights.split("\\")[4] +
+    for img_path in ccd_list:
+        save = weights.split("\\")[4] + img_path.split("_")[1]
+        ccd_path = img_path
+        dem_path = img_path.replace("img","dem")
+        feature_maps, ccd, dem = main(weights, ccd_path, dem_path, save)
+
+
+
 
 # for i in [18,19,20,27,30,33]:
 # # 绘制热力图
