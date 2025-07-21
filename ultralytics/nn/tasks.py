@@ -10,7 +10,7 @@ from pathlib import Path
 import thop
 import torch
 
-from ultralytics.nn.modules.dbyolo import DWRConv,Cat,CaC,DFM,TFAM
+from ultralytics.nn.modules.dbyolo import DWRConv,HWD, Cat,CaC,AaN,DFM,TFAM,MDFM,BiFPN,Cat_noGamma,Cat_onlyResnet,Cat_noAttention,Cat_onlyAttention
 from ultralytics.nn.modules.deyolo import DEA,C2f_BiFocus
 from ultralytics.nn.modules.yolofusion import CDC
 from ultralytics.nn.modules.superyolo import MF
@@ -983,6 +983,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RepNCSPELAN4,
             ELAN1,
             ADown,
+            HWD,
             AConv,
             SPPELAN,
             C2fAttn,
@@ -1084,7 +1085,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[0]
             c1 = ch[f]
             args = [*args[1:]]
-        elif m in frozenset({Cat, DFM, TFAM, CaC, DEA}):
+        elif m in frozenset({Cat, DFM, TFAM, CaC, AaN, DEA, MDFM, BiFPN,Cat_noGamma,Cat_onlyResnet,Cat_noAttention,Cat_onlyAttention}):
             c2 = ch[f[0]]
             args = [c2]
         elif m is CDC:
