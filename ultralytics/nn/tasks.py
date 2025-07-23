@@ -10,10 +10,9 @@ from pathlib import Path
 import thop
 import torch
 
-from ultralytics.nn.modules.dbyolo import DWRConv,HWD, Cat,CaC,AaN,DFM,TFAM,MDFM,BiFPN,Cat_noGamma,Cat_onlyResnet,Cat_noAttention,Cat_onlyAttention
+from ultralytics.nn.modules.dbyolo import HWD,Cat,CaC,AaN,DFM,TFAM,MDFM,BiFPN,Cat_noGamma,Cat_onlyResnet,Cat_noAttention,Cat_onlyAttention
 from ultralytics.nn.modules.deyolo import DEA,C2f_BiFocus
 from ultralytics.nn.modules.yolofusion import CDC
-from ultralytics.nn.modules.superyolo import MF
 
 from ultralytics.nn.modules import (
     AIFI,
@@ -999,7 +998,6 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2fCIB,
             A2C2f,
             C2f_BiFocus,
-            DWRConv
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments

@@ -262,8 +262,9 @@ class densecat_cat_diff(nn.Module):
 
 
 class TFAM(nn.Module):
-    def __init__(self, dim_in, dim_out, reduction=True):
-        super(Cat, self).__init__()
+    def __init__(self, dim_in, reduction=True):
+        super(TFAM, self).__init__()
+        dim_out = dim_in
         if reduction:
             self.reduction = torch.nn.Sequential(
                 torch.nn.Conv2d(dim_in, dim_in // 2, kernel_size=1, padding=0),
@@ -640,3 +641,9 @@ class BiFPN(nn.Module):
         w = self.w
         weight = w / (torch.sum(w, dim=0) + self.epsilon)
         return self.conv(self.silu(weight[0] * x[0] + weight[1] * x[1]))
+
+
+if __name__ == '__main__':
+    x = torch.randn(1, 128, 80, 80)
+    hwd = HWD(128,256)
+    y = hwd(x)
