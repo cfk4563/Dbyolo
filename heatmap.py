@@ -177,63 +177,62 @@ def main(weights_path,ccd_path,dem_path,save):
         ccd_processed,
         *output_to_target(preds, max_det=300),
         paths=ccd_path,
-        fname="ccd"+save,
+        fname=save,
         names={0:""},
         )
-    plot_images(
-        dem_processed,
-        *output_to_target(preds, max_det=300),
-        paths=ccd_path,
-        fname="dem"+save,
-        names={0: ""},
-    )
+    # plot_images(
+    #     dem_processed,
+    #     *output_to_target(preds, max_det=300),
+    #     paths=ccd_path,
+    #     fname="dem"+save,
+    #     names={0: ""},
+    # )
     return feature_maps, ccd, dem
 
-weights_list = [r"D:\Dbyolo\runs\detect\DByolo\\weights\best.pt",
-                r"D:\Dbyolo\runs\detect\DEyolo\\weights\best.pt",
-                r"D:\Dbyolo\runs\detect\YOLOFusion2\weights\best.pt",]
+weights_list = [
+                r'D:\Dbyolo\runs\detect\DByolo\weights\best.pt',
+                r'D:\Dbyolo\runs\detect\DByolo_1_AaN\weights\best.pt',
+                r'D:\Dbyolo\runs\detect\DByolo_1_BiFPN\weights\best.pt',
+                r'D:\Dbyolo\runs\detect\DByolo_1_CaC\weights\best.pt',
+                r'D:\Dbyolo\runs\detect\DByolo_1_DFM\weights\best.pt',
+                r'D:\Dbyolo\runs\detect\DByolo_1_MDFM\weights\best.pt',
+                r'D:\Dbyolo\runs\detect\DByolo_1_TFAM\weights\best.pt',
+                ]
 
-ccd_list = [r'C:\Users\HP\Desktop\image\img_56.jpg',
-            r'C:\Users\HP\Desktop\image\img_446.jpg',
-            r'C:\Users\HP\Desktop\image\img_478.jpg',
-            r'C:\Users\HP\Desktop\image\img_1173.jpg',
-            r'C:\Users\HP\Desktop\image\img_3685.jpg',
-            ]
+img_path = r'C:\Users\HP\Desktop\img224.jpg'
 
 for weights in weights_list:
     # save = weights.split("\\")[4] +
-    for img_path in ccd_list:
-        save = weights.split("\\")[4] + img_path.split("_")[1]
-        ccd_path = img_path
-        dem_path = img_path.replace("img","dem")
-        feature_maps, ccd, dem = main(weights, ccd_path, dem_path, save)
 
+    save1 = weights.split("\\")[4]
+    save = save1 + ".jpg"
+    ccd_path = img_path
+    dem_path = img_path.replace("img","dem")
+    feature_maps, ccd, dem = main(weights, ccd_path, dem_path, save)
 
+    for i in [18,19,20,27, 30, 33]:
+    # 绘制热力图
+        heatmap = draw_heatmap(feature_maps[i])
 
+        # 将热力图与原图叠加
+        overlay = cv2.addWeighted(ccd, 0.6, heatmap, 0.4, 0)
 
-# for i in [18,19,20,27,30,33]:
-# # 绘制热力图
-#     heatmap = draw_heatmap(feature_maps[i])
-#
-#     # 将热力图与原图叠加
-#     overlay = cv2.addWeighted(ccd, 0.6, heatmap, 0.4, 0)
-#
-#     # 显示结果
-#     plt.figure(figsize=(15, 5))
-#
-#     plt.subplot(132)
-#     plt.imshow(cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
-#     plt.title('Heatmap')
-#     plt.axis('off')
-#
-#     plt.subplot(133)
-#     plt.imshow(cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB))
-#     plt.title('Overlay')
-#     plt.axis('off')
-#
-#     plt.tight_layout()
-#     plt.show()
-#
-#     # 保存结果
-#     cv2.imwrite(f'./heatmap/heatmap{i}.jpg', heatmap)
-#     cv2.imwrite(f'./heatmap/overlay{i}.jpg', overlay)
+        # 显示结果
+        plt.figure(figsize=(15, 5))
+
+        plt.subplot(132)
+        plt.imshow(cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
+        plt.title('Heatmap')
+        plt.axis('off')
+
+        plt.subplot(133)
+        plt.imshow(cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB))
+        plt.title('Overlay')
+        plt.axis('off')
+
+        plt.tight_layout()
+        plt.show()
+
+        # 保存结果
+        cv2.imwrite(f'./heatmap/heatmap{save1}{i}.jpg', heatmap)
+        cv2.imwrite(f'./heatmap/overlay{save1}{i}.jpg', overlay)

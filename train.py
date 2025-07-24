@@ -11,11 +11,26 @@ from ultralytics import YOLO
 
 if __name__ == '__main__':
     yaml = [
-        # "DByolo.yaml",
-        # "DEyolo.yaml",
-        "YOLOFusion.yaml",
-        # "yoloDB11.yaml",
-        # "yoloDB12.yaml",
+        # 'DByolo.yaml',
+        # 'DByolo_1_AaN.yaml',
+        # 'DByolo_1_BiFPN.yaml',
+        # 'DByolo_1_CaC.yaml',
+        # 'DByolo_1_DFM.yaml',
+        # 'DByolo_1_MDFM.yaml',
+        'DByolo_1_TFAM.yaml',
+        'DByolo_BnoFocus.yaml',
+        # 'DByolo_BnoHWD.yaml',
+        'DByolo_MnoAttention.yaml',
+        'DByolo_MnoGamma.yaml',
+        'DByolo_MonlyAttention.yaml',
+        'DByolo_MonlyResnet.yaml',
+        # 'DEyolo.yaml',
+        # 'yoloDB5.yaml',
+        # 'yoloDB8.yaml',
+        # 'yoloDB10.yaml',
+        # 'yoloDB11.yaml',
+        # 'yoloDB12.yaml',
+        # 'YOLOFusion.yaml',
     ]
     for item in yaml:
         model = YOLO(item)

@@ -643,6 +643,7 @@ class BiFPN(nn.Module):
         return self.conv(self.silu(weight[0] * x[0] + weight[1] * x[1]))
 
 
+
 if __name__ == '__main__':
     x = torch.randn(1, 128, 80, 80)
     hwd = HWD(128,256)
