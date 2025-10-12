@@ -1,6 +1,6 @@
-# 双主干网络用于月球陨石坑预测
+# DBYOLO: Dual-Backbone YOLO Network for Lunar Crater Detection
 
-一种基于双主干特征融合网络的月球陨石坑识别模型DBYOLO（Dual-Backbone YOLO Network for Lunar Crater Detection），具有两个创新点，第一个创新点是提出双主干网络分别处理来自月球侦察轨道器相机获取CCD影像和和DTM影像，分别学习CCD影像的纹理边缘特征和DEM影像的地形深度特征，第二个创新点是提出了基于注意力机制的特征融合模块，实现了多源数据特征的动态融合，提取月球表面CCD影像和DEM数据的互补信息，来实现陨石坑的目标检测。
+Craters are among the most prominent and significant geomorphological features on the lunar surface. The complex and variable environment of the lunar surface, which is characterized by diverse textures, lighting conditions, and terrain variations, poses significant challenges to existing crater detection methods. To address these challenges, this study introduces DBYOLO, an innovative deep learning framework designed for lunar crater detection, leveraging a dual-backbone feature fusion network, with two key innovations. The first innovation is a lightweight dual-backbone network that processes Lunar Reconnaissance Orbiter Camera (LROC) CCD images and Digital Terrain Model (DTM) data separately, extracting texture and edge features from CCD images and terrain depth features from DTM data. The second innovation is a feature fusion module with attention mechanisms that is used to dynamically integrate multi-source data, enabling the efficient extraction of complementary information from both CCD images and DTM data, enhancing crater detection performance in complex lunar surface environments. Experimental results demonstrate that DBYOLO, with only 3.6 million parameters, achieves a precision of 77.2%, recall of 70.3%, mAP50 of 79.4%, and mAP50-95 of 50.4%, representing improvements of 3.1%, 1.8%, 3.1%, and 2.6%, respectively, over the baseline model before modifications. This showcases an overall performance enhancement, providing a new solution for lunar crater detection and offering significant support for future lunar exploration efforts.
 
 ## 数据集结构
 
@@ -77,4 +77,21 @@ python test.py
 ## 预测
 ```python
 python heatmap.py
+```
+## Citation
+Please cite our paper if you find the work useful:
+```
+@Article{rs17193377,
+AUTHOR = {Liu, Yawen and Chen, Fukang and Qiu, Denggao and Liu, Wei and Yan, Jianguo},
+TITLE = {DBYOLO: Dual-Backbone YOLO Network for Lunar Crater Detection},
+JOURNAL = {Remote Sensing},
+VOLUME = {17},
+YEAR = {2025},
+NUMBER = {19},
+ARTICLE-NUMBER = {3377},
+URL = {https://www.mdpi.com/2072-4292/17/19/3377},
+ISSN = {2072-4292},
+DOI = {10.3390/rs17193377}
+}
+
 ```
