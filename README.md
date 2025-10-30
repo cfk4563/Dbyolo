@@ -4,9 +4,12 @@ Craters are among the most prominent and significant geomorphological features o
 
 ## 数据集结构
 
-用于训练、验证和测试双主干网络的数据集由配对的地形数据（DTM）和光学图像数据（CCD）组成，并附有陨石坑位置及属性标注。数据集结构如下：
+用于训练、验证和测试双主干网络的数据集由配对的地形数据（DTM）和光学图像数据（CCD）组成，并附有陨石坑位置及属性标注。
+
 通过网盘分享的文件：数据集.zip
 链接: https://pan.baidu.com/s/1cqNbKh10AL2vGSRnEInMCA 提取码: 29ny
+
+数据集结构如下：
 #### LROC 数据集结构
 
 ```
